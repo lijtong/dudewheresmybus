@@ -56,7 +56,19 @@ main = do
 
   let jone = [jsonF|data.json|]
       val1 = [jsq| jone[0].Direction |] :: String
+      val2 = [jsq| jone[0].Schedules[0].Destination |]     :: String
+	  -- val3 = [jsq| jone[1].ExpectedLeaveTime |] :: String
+	  -- val4 = [jsq| jone[2].Destination |] :: String
+	  -- val5 = [jsq| jone[2].ExpectedLeaveTime |] :: String
+	  -- val6 = [jsq| jone[3].Destination |] :: String
+	  -- val7 = [jsq| jone[4].ExpectedLeaveTime |] :: String
   putStrLn val1
+  putStrLn val2
+  -- putStrLn val3
+  -- putStrLn val4
+  -- putStrLn val5
+  -- putStrLn val6
+  -- putStrLn val7
   main1
 
 -- prompt user for valid input. Move to step 2 if bus is valid! Otherwise, loop.
