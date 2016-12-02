@@ -1,10 +1,10 @@
--- !!! COPIED
-module JSON where
+-- !!! COPIED IMPORT
+import Text.Printf (printf)
 
-import Data.Char
-import Data.Map hiding (map)
-import Text.ParserCombinators.Parsec hiding (token)
+import Text.DeadSimpleJSON
+import Text.DeadSimpleJSON.TH
 
+import Data.Ratio
 -- COPIED END
 
 {-# LANGUAGE OverloadedStrings #-}
@@ -23,161 +23,8 @@ header' = Header HdrAccept "application/JSON"
 
 request = simpleHTTP (Request uri GET [header'] "") >>= fmap (Prelude.take 10000) . getResponseBody
 
--- COPIED
--- !!! remove all this
---------------------------------------------------------------------------
+-- !!! COPIED
 
-data JsonValue = JsonString String
-           | JsonNumber Double
-           | JsonObject (Map String JsonValue)
-           | JsonArray  [JsonValue]
-           | JsonTrue
-           | JsonFalse
-           | JsonNull
-  deriving (Show, Eq)
-
---------------------------------------------------------------------------
--- Convenient parse combinators
-
-token :: Parser a -> Parser a
-token p = do r <- p
-             spaces
-             return r
-
-comma :: Parser Char
-comma = token (char ',')
-
---------------------------------------------------------------------------
-
-parseJSON :: String -> JsonValue
-parseJSON str = case (parse jsonFile "" str) of
-               Left  s -> error (show s)
-               Right v -> v
-
-jsonFile :: Parser JsonValue
-jsonFile = do contents <- jsonObject <|> jsonArray
-              eof
-              return contents
-
--- JSON Object
-jsonObject :: Parser JsonValue
-jsonObject = do pairs <- between open close (sepBy jsonPair comma)
-                return $ JsonObject $ fromList pairs
-  where
-  open  = token (char '{')
-  close = token (char '}')
-
-jsonPair :: Parser (String, JsonValue)
-jsonPair = do key   <- token(jsonString)
-              token (char ':')
-              value <- token(jsonValue)
-              return (toString key, value)
-  where
- toString (JsonString s) = s
- toString _ = ""
-
--- JSON Array
-jsonArray :: Parser JsonValue
-jsonArray = do values <- between open close (sepBy (token jsonValue) comma)
-               return $ JsonArray values
-  where
- open  = token (char '[')
- close = token (char ']')
-
-
--- Any JSON Value
-jsonValue :: Parser JsonValue
-jsonValue = do spaces
-               obj <- token(jsonString
-                             <|> jsonNumber
-                             <|> jsonObject
-                             <|> jsonArray
-                             <|> jsonTrue
-                             <|> jsonFalse
-                             <|> jsonNull
-                             )
-               return obj
-
--- JSON String
-jsonString :: Parser JsonValue
-jsonString = do s <- between (char '"' ) (char '"' ) (many jsonChar)
-                return (JsonString s)
-
-isValidJsonChar ch = (isAscii ch) && (isPrint ch) && (ch /= '\\') && (ch /= '"')
-
-hexToInt s = Prelude.foldl (\i j -> (16 * i) + j) 0 (map digitToInt s)
-
-jsonChar = satisfy isValidJsonChar
-           <|> do char '\\'  -- escaping backslash
-                  char '\\'  -- escaped character
-                    <|> char '"'
-                    <|> char '/'
-                    <|> (char 'b' >> return '\b')
-                    <|> (char 'f' >> return '\f')
-                    <|> (char 'n' >> return '\n')
-                    <|> (char 'r' >> return '\r')
-                    <|> (char 't' >> return '\t')
-                    <|> do char 'u'
-                           hex <- count 4 (satisfy isHexDigit)
-                           return $ chr (hexToInt hex)
-
--- JSON Number
-jsonNumber :: Parser JsonValue
-jsonNumber = do i    <- int
-                frac <- option "" frac
-                e    <- option "" expo
-                return $ JsonNumber (read (i ++ frac ++ e))
-
-int :: Parser String
-int = do sign  <- option "" (string "-")
-         value <- (string "0" <|> many1 digit)
-         return (sign ++ value)
-
-frac :: Parser String
-frac = do char '.'
-          digits <- many1 digit
-          return ( '.':digits)
-
-expo :: Parser String
-expo = do e <- oneOf "eE"
-          p <- option '+' (oneOf "+-")
-          n <- many1 digit
-          return (e : p : n)
-
-
--- JSON Constants
-jsonTrue  = token (string "true")  >> return JsonTrue
-jsonFalse = token (string "false") >> return JsonFalse
-jsonNull  = token (string "null")  >> return JsonNull
-
---------------------------------------------------------------------------
--- A JSON Pretty Printer
---------------------------------------------------------------------------
-pprint v = toString "" v
-
-toString indent (JsonString s) = show s
-toString indent (JsonNumber d) = show d
-toString indent (JsonObject o) =
- if (o == empty)
-  then "{}"
-  else "{\n" ++ showObjs  (indent ++ " ") (toList o) ++ "\n" ++ indent ++ "}"
-toString indent (JsonArray []) = "[]"
-toString indent (JsonArray a)  = "[\n" ++ showArray (indent ++ " ") a          ++ "\n" ++ indent ++ "]"
-toString indent (JsonTrue)     = "true"
-toString indent (JsonFalse)    = "false"
-toString indent (JsonNull)     = "null"
-
-showKeyValue i k v    = i ++ show k ++ ": " ++ toString i v
-
-showObjs i []         = ""
-showObjs i [(k ,v)]   = showKeyValue i k v
-showObjs i ((k, v):t) = showKeyValue i k v ++ ",\n" ++ showObjs i t
-
-showArray i []    = ""
-showArray i [a]   = i ++ toString i a
-showArray i (h:t) = i ++ toString i h ++ ",\n" ++ showArray i t
-
--- !!!
 -- COPIED END
 
 
@@ -194,7 +41,11 @@ main = do
   putStrLn "Hello! Welcome to where's my bus! We'll get you your bus schedule."
   test <- simpleHTTP (Request uri GET [header'] "") >>= fmap (Prelude.take 10000) . getResponseBody
   -- !!!! CURRENTLY, test acts as a string.
-  putStrLn test
+  -- putStrLn test
+
+  let jsonData = read test :: JSON
+
+  putStrLn $ show jsonData
   main1
 
 -- prompt user for valid input. Move to step 2 if bus is valid! Otherwise, loop.
