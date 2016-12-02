@@ -34,31 +34,31 @@ header' = Header HdrAccept "application/JSON"
 --            as one action is finished, you link it to another action.
 
 -- !!!
-main = do
-  putStrLn "Hello! Welcome to Where's My Bus! We'll get you your bus schedule."
-  choice
+main = do                                                                               -- sequence IO operations
+  putStrLn "Hello! Welcome to Where's My Bus! We'll get you your bus schedule."         -- brief intro
+  choice                                                                                -- do "choice" block 
   
 choice = forever $ do 
-  putStrLn "Enter 1 for a regular bus stop estimate"
-  putStrLn "Enter 2 for a geolocation bus stop search"
-  putStrLn "Enter exit to exit this program"
-  choicenum <- getLine
-  if choicenum == "1" then main1 
-  else if choicenum == "2" then main2
-  else if choicenum == "exit" then exitWith ExitSuccess
-  else putStrLn "Sorry I didn't recognize your choice"
+  putStrLn "Enter 1 for a regular bus stop estimate"                                    -- shows up on prompt for user to know 1 => bus stop
+  putStrLn "Enter 2 for a geolocation bus stop search"                                  -- shows up on prompt for user to know 2 => latlon
+  putStrLn "Enter exit to exit this program"                                            -- shows up on prompt for user to know how to exit
+  choicenum <- getLine                                                                  -- initialize choicenum as the command user inserts in
+  if choicenum == "1" then main1                                                        -- if 1 is entered, do main1 block
+  else if choicenum == "2" then main2                                                   -- if 2 is entered, do main2 block
+  else if choicenum == "exit" then exitWith ExitSuccess                                 -- if exit is entered, exit the main function 
+  else putStrLn "Sorry I didn't recognize your choice"                                  -- invalidates all other non applicable actions
   
 main1 = do
-  putStrLn "Input your bus stop number now"
-  bstop <- getLine
-  if (not (isValidBus bstop)) then do 
-		putStrLn "Invalid bus #, try again!"
-		main1
+  putStrLn "Input your bus stop number now"                                             -- allows user to know it is looking for a 5-numbered bus stop
+  bstop <- getLine                                                                      -- bstop as the command user inserts in
+  if (not (isValidBus bstop)) then do                                                   -- checks if BusStop number is valid (5 digit numbers)
+		putStrLn "Invalid bus #, try again!"                                    -- invalid case: prints out that it is invalid
+                choice                                                                  -- 
   else  putStrLn "Input your route number now"
   broute <- getLine
   if (not (isValidRoute broute)) then do 
 		putStrLn "Invalid route #, try again!"
-		main1
+		
   else do
 	let queryurl = url ++ bstop ++ "/" ++ estimates ++ routeno ++ broute
 	let Just uri = parseURI queryurl	
