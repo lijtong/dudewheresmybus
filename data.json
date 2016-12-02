@@ -1,0 +1,42 @@
+[{
+	"Direction": "WEST",
+	"RouteMap": {
+		"Href": "http://nb.translink.ca/geodata/049.kmz"
+	},
+	"RouteName": "METROTOWN STN/DUNBAR LOOP/UBC   ",
+	"RouteNo": "049",
+	"Schedules": [{
+		"AddedStop": false,
+		"AddedTrip": false,
+		"CancelledStop": false,
+		"CancelledTrip": false,
+		"Destination": "DUNBAR LOOP",
+		"ExpectedCountdown": 15,
+		"ExpectedLeaveTime": "11:27pm 2016-12-01",
+		"LastUpdate": "10:13:05 pm",
+		"Pattern": "WB7",
+		"ScheduleStatus": "*"
+	}, {
+		"AddedStop": false,
+		"AddedTrip": false,
+		"CancelledStop": false,
+		"CancelledTrip": false,
+		"Destination": "TO GRANVILLE",
+		"ExpectedCountdown": 46,
+		"ExpectedLeaveTime": "11:58pm 2016-12-01",
+		"LastUpdate": "10:45:09 pm",
+		"Pattern": "WB3S",
+		"ScheduleStatus": " "
+	}, {
+		"AddedStop": false,
+		"AddedTrip": false,
+		"CancelledStop": false,
+		"CancelledTrip": false,
+		"Destination": "TO GRANVILLE",
+		"ExpectedCountdown": 76,
+		"ExpectedLeaveTime": "12:28am",
+		"LastUpdate": "09:00:06 pm",
+		"Pattern": "WB3S",
+		"ScheduleStatus": "*"
+	}]
+}]
