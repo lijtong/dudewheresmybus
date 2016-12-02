@@ -1,4 +1,9 @@
 -- !!! COPIED IMPORT
+{-# LANGUAGE Haskell2010, TemplateHaskell, QuasiQuotes #-}
+
+module Main where
+
+
 import Text.Printf (printf)
 
 import Text.DeadSimpleJSON
@@ -42,10 +47,34 @@ main = do
   test <- simpleHTTP (Request uri GET [header'] "") >>= fmap (Prelude.take 10000) . getResponseBody
   -- !!!! CURRENTLY, test acts as a string.
   -- putStrLn test
+  let jone = [json|
+                    [
+                        {
+                            "one": 0.1,
+                            "two": 123
+                        },
+                        {
+                            "one": true,
+                            "two": null,
+                            "three": 23412349.24e-12
+                        },
+                        {
+                            "one": "ONE",
+                            "two": null,
+                            "three": "THREE"
+                        },
+                        {
+                            "one": false,
+                            "two": 14964674393249287
+                        }
+                    ]
+                |]
+  -- let jsonData = read test :: JSON
 
-  let jsonData = read test :: JSON
-
-  putStrLn $ show jsonData
+      -- val1 = [jsq| jsonData[0].Direction |] :: String
+      -- -- putStrLn $ show jsonData
+      -- print $ (jsonData ? "[0]" :: JSON)
+  -- putStrLn $ show val1
   main1
 
 -- prompt user for valid input. Move to step 2 if bus is valid! Otherwise, loop.
