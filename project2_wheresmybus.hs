@@ -15,17 +15,21 @@ import Data.Ratio
 import Network.HTTP
 import Network.HTTP.Headers
 import Network.URI
-import qualified Data.ByteString.Lazy.Char8 as C
-import Text.XML.Light
+--import qualified Data.ByteString.Lazy.Char8 as C
+--import Text.XML.Light
 import Data.Char
-import Control.Concurrent
+--import Control.Concurrent
 import Control.Monad
 import System.Exit
+import Data.String
+import qualified Data.Text as T
+--import Data.Typeable
 
 testurl = "http://maps.googleapis.com/maps/api/geocode/json?address=2366+Main+Mall,+Vancouver,+BC"
 key' = "cURsrZ7AjbHgfC8cuZLV"
-geocachekey = "AIzaSyAhSWqsa_BRpEJtM5FGhSa3ZGJjQ0FWByg"
-url = "http://api.translink.ca/rttiapi/v1/stops/"
+-- geocachekey = "AIzaSyAhSWqsa_BRpEJtM5FGhSa3ZGJjQ0FWByg"
+url = "http://api.translink.ca/rttiapi/v1/stops"
+geo = "http://maps.googleapis.com/maps/api/geocode/json?address="
 estimates = "estimates?apikey=" ++ key'
 routeno = "&routeno="
 header' = Header HdrAccept "application/JSON"
@@ -58,34 +62,73 @@ main1 = do
   broute <- getLine
   if (not (isValidRoute broute)) then do 
 		putStrLn "Invalid route #, try again!"
-		
+		choice
   else do
-	let queryurl = url ++ bstop ++ "/" ++ estimates ++ routeno ++ broute
+	let queryurl = url ++ "/" ++ bstop ++ "/" ++ estimates ++ routeno ++ broute
 	let Just uri = parseURI queryurl	
-	print uri
-	test <- simpleHTTP (Request uri GET [header'] "") >>= fmap (Prelude.take 10000) . getResponseBody
-	let jone = read test :: JSON
-	-- let val = [jsq| jone[0].Code |]
+	-- print uri
+	estquery <- simpleHTTP (Request uri GET [header'] "") >>= fmap (Prelude.take 10000) . getResponseBody
+	let checkquery = ('[':estquery)
+	let checkquery1 = checkquery ++ "]"
+	let estcheck = read checkquery1 :: JSON
+	let code = [jsq| estcheck[0].Code |] :: String
+	let msg = [jsq| estcheck[0].Message |] :: String
 	-- print val
-	-- if (null val) then do
-	let val1 = [jsq| jone[0].Direction |] :: String
-	let val2 = [jsq| jone[0].Schedules[0].Destination |]     :: String
-	let val3 = [jsq| jone[0].Schedules[0].ExpectedLeaveTime |]     :: String
-	let val4 = [jsq| jone[0].Schedules[1].Destination |]     :: String
-	let val5 = [jsq| jone[0].Schedules[1].ExpectedLeaveTime |]     :: String
-	let val6 = [jsq| jone[0].Schedules[2].Destination |]     :: String
-	let val7 = [jsq| jone[0].Schedules[2].ExpectedLeaveTime |]     :: String
-	putStrLn val1
-	putStrLn val2
-	putStrLn val3
-	putStrLn val4
-	putStrLn val5
-	putStrLn val6
-	putStrLn val7
-	-- else putStrLn "No estimates found for your request"
+	let estjson = read estquery :: JSON
+	-- print estjson
+	-- let val = [jsq| estjson[0].Code |] :: String
+	-- print val
+	if (code == "null") then do
+	-- print estjson
+		let val1 = [jsq| estjson[0].Direction |] :: String
+		let val2 = [jsq| estjson[0].Schedules[0].Destination |]     :: String
+		let val3 = [jsq| estjson[0].Schedules[0].ExpectedLeaveTime |]     :: String
+		let val4 = [jsq| estjson[0].Schedules[1].Destination |]     :: String
+		let val5 = [jsq| estjson[0].Schedules[1].ExpectedLeaveTime |]     :: String
+		let val6 = [jsq| estjson[0].Schedules[2].Destination |]     :: String
+		let val7 = [jsq| estjson[0].Schedules[2].ExpectedLeaveTime |]     :: String
+		putStrLn val1
+		putStrLn val2
+		putStrLn val3
+		putStrLn val4
+		putStrLn val5
+		putStrLn val6
+		putStrLn val7
+	else putStrLn msg
 
 main2 = do
-	putStrLn "Something"
+	putStrLn "Enter the address you would like to know nearby bus stops for"
+	addr <- getLine
+	let formataddr = replaceBlank addr
+	let geourl = geo ++ formataddr
+	let Just geouri = parseURI geourl
+	-- print geouri
+	geoquery <- simpleHTTP (Request geouri GET [header'] "") >>= fmap (Prelude.take 10000) . getResponseBody
+	-- print geoquery
+	let mod = ('[':geoquery)
+	let mod1 = mod ++ "]"
+	-- print change1
+	let mod2 = T.replace (T.pack("\n")) (T.pack("")) (T.pack(mod1))
+	-- print what
+	let mod3 = T.replace (T.pack(" ")) (T.pack("")) mod2
+	-- print what1
+	let geojson = read (T.unpack(mod3)) :: JSON
+	-- print geojson
+	let lat = [jsq| geojson[0].results[0].geometry.location.lat |] :: Double
+	let long = [jsq| geojson[0].results[0].geometry.location.lng |] :: Double
+	let proplat = (truncate' lat 6)
+	let proplong = (truncate' long 6)
+	let queryurl = url ++ "?" ++ "apikey=" ++ key' ++ "&lat=" ++ (show proplat) ++ "&long=" ++ (show proplong) ++ "&radius=500"
+	let Just uri = parseURI queryurl	
+	--print uri
+	estquery <- simpleHTTP (Request uri GET [header'] "") >>= fmap (Prelude.take 10000) . getResponseBody
+	let checkquery = ('[':estquery)
+	let checkquery1 = checkquery ++ "]"
+	let estcheck = read checkquery1 :: JSON
+	let code = [jsq| estcheck[0].Code |] :: String
+	let msg = [jsq| estcheck[0].Message |] :: String
+	let estjson = read estquery :: JSON
+	print estjson
 ------------------------------
 -- Helper functions belong below, so as to make our "Actions" more clear and simple.
 
@@ -102,3 +145,12 @@ isValidLength xs = length xs == 5
 
 isValidLengthRoute :: Foldable t => t a -> Bool
 isValidLengthRoute xs = length xs == 3
+
+-- Function to properly format the location requests
+replaceBlank = map (\c -> if c==' ' then '+'; else c)
+
+-- Truncate function that rounds doubles to specified number of decimal places, from StackOverflow answer
+-- http://stackoverflow.com/a/31952975
+truncate' :: Double -> Int -> Double
+truncate' x n = (fromIntegral (floor (x * t))) / t
+    where t = 10^n
