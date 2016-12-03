@@ -1,7 +1,7 @@
 -- !!! COPIED IMPORT FOR DeadSimpleJSON
 {-# LANGUAGE Haskell2010, TemplateHaskell, QuasiQuotes #-}
 
-module Main where
+module DudeWheresMyBus where
 
 
 import Text.Printf (printf)
@@ -28,55 +28,48 @@ geo = "http://maps.googleapis.com/maps/api/geocode/json?address="
 estimates = "estimates?apikey=" ++ key'
 routeno = "&routeno="
 header' = Header HdrAccept "application/JSON"
-n = -1
 
 -- preface: program runs in terms of ACTIONS and do blocks.
 --            as one action is finished, you link it to another action.
 
 -- !!!
-main = do                                                                               -- sequence IO operations
-  putStrLn "Hello! Welcome to Where's My Bus! We'll get you your bus schedule."         -- brief intro
-  choice                                                                                -- do "choice" block 
+start = do                                                                               									-- sequence IO operations
+  putStrLn "Hello! Welcome to Where's My Bus! We'll get you your bus schedule."         	-- brief intro
+  choice                                                                                										-- do "choice" block 
   
 choice = forever $ do 
-  putStrLn "Enter 1 for a regular bus stop estimate"                                    -- shows up on prompt for user to know 1 => bus stop
-  putStrLn "Enter 2 for a geolocation bus stop search"                                  -- shows up on prompt for user to know 2 => latlon
-  putStrLn "Enter exit to exit this program"                                            -- shows up on prompt for user to know how to exit
-  choicenum <- getLine                                                                  -- initialize choicenum as the command user inserts in
-  if choicenum == "1" then main1                                                        -- if 1 is entered, do main1 block
-  else if choicenum == "2" then main2                                                   -- if 2 is entered, do main2 block
-  else if choicenum == "exit" then exitWith ExitSuccess                                 -- if exit is entered, exit the main function 
-  else putStrLn "Sorry I didn't recognize your choice"                                  -- invalidates all other non applicable actions
+  putStrLn "Enter 1 for a regular bus stop estimate"                                 					   	-- shows up on prompt for user to know 1 => bus stop
+  putStrLn "Enter 2 for a geolocation bus stop search"                       			        		   	-- shows up on prompt for user to know 2 => latlon
+  putStrLn "Enter exit to exit this program"                                        					    	-- shows up on prompt for user to know how to exit
+  choicenum <- getLine                                                                  								-- initialize choicenum as the command user inserts in
+  if choicenum == "1" then main1                                                        						-- if 1 is entered, do main1 block
+  else if choicenum == "2" then main2                                                   					-- if 2 is entered, do main2 block
+  else if choicenum == "exit" then exitWith ExitSuccess                                 				-- if exit is entered, exit the main function 
+  else putStrLn "Sorry I didn't recognize your choice"                                  					-- invalidates all other non applicable actions
   
 main1 = do
-  putStrLn "Input your bus stop number now"                                             -- allows user to know it is looking for a 5-numbered bus stop
-  bstop <- getLine                                                                      -- bstop as the command user inserts in
-  if (not (isValidBus bstop)) then do                                                   -- checks if BusStop number is valid (5 digit numbers)
-		putStrLn "Invalid bus #, try again!"                                    -- invalid case: prints out that it is invalid
-                choice                                                                  -- 
-  else  putStrLn "Input your route number now"
-  broute <- getLine
-  if (not (isValidRoute broute)) then do 
-		putStrLn "Invalid route #, try again!"
+  putStrLn "Input your bus stop number now"                                         					    -- allows user to know it is looking for a 5-numbered bus stop
+  bstop <- getLine                                                                    									-- bstop as the command user inserts in
+  if (not (isValidBus bstop)) then do                                              						     	-- checks if BusStop number is valid (5 digit numbers)
+		putStrLn "Invalid bus #, try again!"                                    									-- invalid case: prints out that it is invalid
+                choice                                                                 					 					-- loops back to choice if invalid`
+  else  putStrLn "Input your route number now"															-- asking user for route number input, which is has a max length of 3
+  broute <- getLine																										-- read user input
+  if (not (isValidRoute broute)) then do 																		-- check validity of the route given
+		putStrLn "Invalid route #, try again!"																	-- loop back to choice if it is invalid
 		choice
   else do
-	let queryurl = url ++ "/" ++ bstop ++ "/" ++ estimates ++ routeno ++ broute
-	let Just uri = parseURI queryurl	
-	-- print uri
-	estquery <- simpleHTTP (Request uri GET [header'] "") >>= fmap (Prelude.take 10000) . getResponseBody
-	let checkquery = ('[':estquery)
-	let checkquery1 = checkquery ++ "]"
+	let queryurl = url ++ "/" ++ bstop ++ "/" ++ estimates ++ routeno ++ broute			-- URL query formation from the given information to do the GET request from Translink API
+	let Just uri = parseURI queryurl																				-- parse the URI from the URL
+	estquery <- simpleHTTP (Request uri GET [header'] "") >>= fmap (Prelude.take 10000) . getResponseBody -- Uses simpleHTTP to make a GET request to the Translink API
+	let checkquery = ('[':estquery)																				-- next few lines used for formatting error messages sent from Translink, their formats are
+	let checkquery1 = checkquery ++ "]"																		-- inconsistent so some changes had to be made for the parser to accept them
 	let estcheck = read checkquery1 :: JSON
-	let code = [jsq| estcheck[0].Code |] :: String
+	let code = [jsq| estcheck[0].Code |] :: String															-- grab code and message if there is an error, if there wasn't an error code and msg return null
 	let msg = [jsq| estcheck[0].Message |] :: String
-	-- print val
 	let estjson = read estquery :: JSON
-	-- print estjson
-	-- let val = [jsq| estjson[0].Code |] :: String
-	-- print val
-	if (code == "null") then do
-	-- print estjson
-		let val1 = [jsq| estjson[0].Direction |] :: String
+	if (code == "null") then do																					-- error check, if there is no code print out the three bus stop estimates received from Translink
+		let val1 = [jsq| estjson[0].Direction |] :: String													-- extract JSON data parsed and print it out
 		let val2 = [jsq| estjson[0].Schedules[0].Destination |]     :: String
 		let val3 = [jsq| estjson[0].Schedules[0].ExpectedLeaveTime |]     :: String
 		let val4 = [jsq| estjson[0].Schedules[1].Destination |]     :: String
@@ -90,37 +83,31 @@ main1 = do
 		putStrLn val5
 		putStrLn val6
 		putStrLn val7
-	else putStrLn msg
+	else putStrLn msg																									-- if there is an error, print out the error message
 
 main2 = do
-	putStrLn "Enter the address you would like to know nearby bus stops for"
+	putStrLn "Enter the address you would like to know nearby bus stops for"					-- take user input for address and radius they want to search for bus stops in
 	addr <- getLine
 	putStrLn "Enter the radius that you would like to search in metres"
 	rad <- getLine
-	let formataddr = replaceBlank addr
+	let formataddr = replaceBlank addr																		-- call formatBlank to format the user input correctly to use with the query
 	let geourl = geo ++ formataddr
 	let Just geouri = parseURI geourl
-	-- print geouri
-	geoquery <- simpleHTTP (Request geouri GET [header'] "") >>= fmap (Prelude.take 10000) . getResponseBody
-	-- print geoquery
-	let mod = ('[':geoquery)
+	geoquery <- simpleHTTP (Request geouri GET [header'] "") >>= fmap (Prelude.take 10000) . getResponseBody -- send a query with user's address input to Google map API to resolve lat and long
+	let mod = ('[':geoquery)																						-- formatting issues as Google sends the data back in a format unrecognized by the parser we chose, next few lines are for resolving
 	let mod1 = mod ++ "]"
-	-- print change1
 	let mod2 = T.replace (T.pack("\n")) (T.pack("")) (T.pack(mod1))
-	-- print what
 	let mod3 = T.replace (T.pack(" ")) (T.pack("")) mod2
-	-- print what1
 	let geojson = read (T.unpack(mod3)) :: JSON
-	-- print geojson
-	let lat = [jsq| geojson[0].results[0].geometry.location.lat |] :: Double
+	let lat = [jsq| geojson[0].results[0].geometry.location.lat |] :: Double						-- extract lat and long from the JSON data returned
 	let long = [jsq| geojson[0].results[0].geometry.location.lng |] :: Double
-	let proplat = (truncate' lat 6)
+	let proplat = (truncate' lat 6)																					-- helper function truncate' used to reduce number of decimal places, can only have a max of 6 for Translink API
 	let proplong = (truncate' long 6)
-	let queryurl = url ++ "?" ++ "apikey=" ++ key' ++ "&lat=" ++ (show proplat) ++ "&long=" ++ (show proplong) ++ "&radius=" ++ rad
+	let queryurl = url ++ "?" ++ "apikey=" ++ key' ++ "&lat=" ++ (show proplat) ++ "&long=" ++ (show proplong) ++ "&radius=" ++ rad -- URL formation to query Translink APi for geolocation stop lookup
 	let Just uri = parseURI queryurl	
-	--print uri
-	estquery <- simpleHTTP (Request uri GET [header'] "") >>= fmap (Prelude.take 10000) . getResponseBody
-	printstops estquery
+	estquery <- simpleHTTP (Request uri GET [header'] "") >>= fmap (Prelude.take 10000) . getResponseBody -- using simpleHTTP, we query Translink API to get the appropriate stops that are within the radius specified`
+	printstops estquery																								-- helper function printstops used to print out at most 10 stops received from the query, very crude implementation as we could not
+																																-- iterate through the list due to parser limitations
 ------------------------------
 -- Helper functions belong below, so as to make our "Actions" more clear and simple.
 
@@ -128,6 +115,7 @@ main2 = do
 isValidBus :: Foldable t => t Char -> Bool
 isValidBus xs = (all isDigit xs) && (isValidLength xs)
 
+-- check if route given is valid, we did not account for bus routes that had letters in the front (i.e night or community buses)
 isValidRoute :: Foldable t => t Char -> Bool
 isValidRoute xs = (all isDigit xs) && (isValidLengthRoute xs)
 
@@ -135,6 +123,7 @@ isValidRoute xs = (all isDigit xs) && (isValidLengthRoute xs)
 isValidLength :: Foldable t => t a -> Bool
 isValidLength xs = length xs == 5
 
+-- check if string is of length 3 for bus route
 isValidLengthRoute :: Foldable t => t a -> Bool
 isValidLengthRoute xs = length xs == 3
 
@@ -147,6 +136,8 @@ truncate' :: Double -> Int -> Double
 truncate' x n = (fromIntegral (floor (x * t))) / t
     where t = 10^n
 
+-- Helper function to hide printing the stops based on geolocation given, very crude and brute force due to
+-- inability to loop through the JSON object given from parser
 printstops estquery = do 
 	let checkquery = ('[':estquery)
 	let checkquery1 = checkquery ++ "]"
